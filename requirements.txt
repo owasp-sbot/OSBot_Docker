@@ -1,3 +1,4 @@
+git+https://github.com/owasp-sbot/OSBot-Utils.git
 docker
 python-dotenv
 pyyaml
