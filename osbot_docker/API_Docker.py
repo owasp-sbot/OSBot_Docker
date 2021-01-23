@@ -1,5 +1,7 @@
 import docker
-from osbot_utils.utils.Misc import trim, bytes_to_str
+from osbot_utils.decorators.methods.catch import catch
+
+from osbot_utils.utils.Misc import trim, bytes_to_str, lower
 
 
 class API_Docker:
@@ -7,19 +9,26 @@ class API_Docker:
     def __init__(self):
         self.client = docker.from_env()
 
+    @catch
     def container_run(self, repository, tag=None, command=None):
         if tag:
             image = f"{repository}:{tag}"
         else:
             image = repository
-        try:
-            output = self.client.containers.run(image, command)
-            return { 'status': 'ok'   , 'output' : trim(bytes_to_str(output)) }
-        except Exception as exception:
-            return { 'status': 'error', 'error': f'{exception}', 'exception': exception  }
+
+        output = self.client.containers.run(image, command)
+        return { 'status': 'ok'   , 'output' : trim(bytes_to_str(output)) }
 
     def containers(self):
         return self.client.containers.list()
+
+    @catch
+    def image_build(self, path, tag):
+        (image,build_logs) = self.client.images.build(path=path, tag=tag)
+        return {'status': 'ok', 'image': image, 'build_logs': build_logs }
+
+    def image_delete(self, image_name):
+        return self.client.images.remove(image=image_name)
 
     def image_pull(self, repository, tag):
         return self.client.images.pull(repository, tag)
