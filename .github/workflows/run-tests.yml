@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          pytest -v --durations=0 --cov=osbot_utils tests
+          pytest -v --durations=0 --cov=osbot_docker tests
           coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
