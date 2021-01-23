@@ -14,8 +14,8 @@ class test_API_Docker(TestCase):
         self.path_docker_images = path_combine(__file__, '../../_test_data/docker_images')
         print()
 
-    def test__init__(self):
-        assert type(self.api_docker.client).__name__ == 'DockerClient'
+    def test_client(self):
+        assert type(self.api_docker.client()).__name__ == 'DockerClient'
 
     def test_container_run(self):
         assert 'Hello from Docker!' in self.api_docker.container_run('hello-world').get('output')
