@@ -33,6 +33,16 @@ class test_API_Docker(TestCase):
     def test_containers(self):
         assert type(self.api_docker.containers()) is list            # todo once we create a container per execution change this to reflect that
 
+    def test_docker_params_append_options(self):
+        docker_params = ['run']
+        options       = {'key': '-v', 'value':'/a:/b'}
+        result = self.api_docker.docker_params_append_options(docker_params,options)
+        assert result == ['run', '-v /a:/b']
+
+        options = [{'key': '-v', 'value':'/c:/d'}, {'key': '-v', 'value':'/e:/f'}]
+        result = self.api_docker.docker_params_append_options(docker_params, options)
+        assert result == ['run', '-v /a:/b', '-v /c:/d', '-v /e:/f']
+
     def test_image_build(self):
         folder_dockerFile = path_combine(self.path_docker_images, 'centos')
         path_dockerfile   = path_combine(folder_dockerFile, 'Dockerfile')

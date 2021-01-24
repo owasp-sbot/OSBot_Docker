@@ -10,8 +10,8 @@ from osbot_utils.utils.Misc import trim, bytes_to_str
 
 class API_Docker:
 
-    def __init__(self):
-        pass
+    def __init__(self, debug=False):
+        self.debug = debug
 
     @cache_on_self
     def client(self):
@@ -30,7 +30,18 @@ class API_Docker:
     def containers(self):
         return self.client().containers.list()
 
-    def docker_run(self, image_params):
+    def docker_params_append_options(self, docker_params, options):
+        if options:
+            if type(options) is not list:                # todo: create decorator for this code pattern (i.e. make sure the value is a list)
+                options = [options]
+            for option in options:
+                key   = option.get('key')
+                value = option.get('value')
+                docker_params.append(key)
+                docker_params.append(value)
+        return docker_params
+
+    def docker_run(self, image_params, options=None):
         """Use this method to invoke the docker executable directly
             image_params is an image name of an array of image name + image params"""
 
@@ -39,26 +50,27 @@ class API_Docker:
                 image_params = [image_params]
 
         docker_params = ['run', '--rm']
+        self.docker_params_append_options(docker_params, options)
         docker_params.extend(image_params)
+        self.print_docker_comamnd(docker_params)                # todo: refactor to use logging class
 
         return exec_process('docker', docker_params)
 
-    def docker_run_bash(self, image_name, image_params, bash_binary='/bin/bash'):
+    def docker_run_bash(self, image_name, image_params, options=None, bash_binary='/bin/bash'):
         bash_params = [image_name, '-c']
         if type(image_params) is str:
             bash_params.append(image_params)
         else:
             bash_params.extend(image_params)
-        return self.docker_run_entrypoint(bash_binary, bash_params)
+        return self.docker_run_entrypoint(entrypoint=bash_binary, image_params=bash_params, options=options)
 
-    def docker_run_entrypoint(self, entrypoint, image_params):
+    def docker_run_entrypoint(self, entrypoint, image_params, options=None):
         entrypoint_params = ['--entrypoint', entrypoint]
         if type(image_params) is str:
             entrypoint_params.append(image_params)
         else:
             entrypoint_params.extend(image_params)
-        return self.docker_run(entrypoint_params)
-
+        return self.docker_run(entrypoint_params, options=options)
 
     @catch
     def image_build(self, path, image_repository, image_tag='latest'):
@@ -81,6 +93,19 @@ class API_Docker:
             for tag in image.tags:
                 names.append(tag)
         return sorted(names)
+
+    def print_docker_comamnd(self, docker_params):
+        if self.debug:
+            print('******** Docker Command *******')
+            print()
+            print('docker', ' '.join(docker_params))
+            print()
+            print('******** Docker Command *******')
+        return self
+
+    def set_debug(self, value=True):
+        self.debug = value
+        return self
 
     def server_info(self):
         return self.client().info()
