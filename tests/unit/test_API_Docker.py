@@ -36,12 +36,14 @@ class test_API_Docker(TestCase):
     def test_image_build(self):
         folder_dockerFile = path_combine(self.path_docker_images, 'centos')
         path_dockerfile   = path_combine(folder_dockerFile, 'Dockerfile')
-        image_name        = "osbot_docker__test_image_build:abc"
+        image_repository  = "osbot_docker__test_image_build"
+        image_tag         = "abc"
+        image_name        = f"{image_repository}:{image_tag}"
 
         assert folder_exists(folder_dockerFile)
         assert file_exists(path_dockerfile)
 
-        result = self.api_docker.image_build(folder_dockerFile, image_name)
+        result = self.api_docker.image_build(folder_dockerFile, image_repository, image_tag)
 
         assert result.get('status') == 'ok'
         assert image_name in result.get('image').tags
