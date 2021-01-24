@@ -11,20 +11,21 @@ from osbot_utils.utils.Misc import trim, bytes_to_str
 class API_Docker:
 
     def __init__(self, debug=False):
-        self.debug = debug
+        self.debug              = debug
+        self.docker_run_timeout = None
 
     @cache_on_self
     def client(self):
         return docker.from_env()
 
     @catch
-    def container_run(self, repository, tag='latest', command=None):
+    def container_run(self, repository, tag='latest', command=None, timeout=None):
         if tag:
             image = f"{repository}:{tag}"
         else:
             image = repository
 
-        output = self.client().containers.run(image, command)
+        output = self.client().containers.run(image, command, timeout=timeout)
         return { 'status': 'ok'   , 'output' : trim(bytes_to_str(output)) }
 
     def containers(self):
@@ -41,7 +42,7 @@ class API_Docker:
                 docker_params.append(value)
         return docker_params
 
-    def docker_run(self, image_params, options=None):
+    def docker_run(self, image_params, options=None, timeout=None):
         """Use this method to invoke the docker executable directly
             image_params is an image name of an array of image name + image params"""
 
@@ -54,7 +55,7 @@ class API_Docker:
         docker_params.extend(image_params)
         self.print_docker_comamnd(docker_params)                # todo: refactor to use logging class
 
-        return exec_process('docker', docker_params)
+        return exec_process('docker', docker_params, timeout=self.docker_run_timeout)
 
     def docker_run_bash(self, image_name, image_params, options=None, bash_binary='/bin/bash'):
         bash_params = [image_name, '-c']
@@ -109,3 +110,6 @@ class API_Docker:
 
     def server_info(self):
         return self.client().info()
+
+    def set_docker_run_timeout(self, value):
+        self.docker_run_timeout = value
