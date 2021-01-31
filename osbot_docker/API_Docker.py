@@ -109,6 +109,9 @@ class API_Docker:
     def image_pull(self, repository, tag):
         return self.client().images.pull(repository, tag)
 
+    def image_push(self, repository, tag):
+        return self.client().images.push(repository, tag)
+
     @index_by
     @group_by
     def images(self):
