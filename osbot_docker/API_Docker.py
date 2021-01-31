@@ -133,6 +133,9 @@ class API_Docker:
             print('******** Docker Command *******')
         return self
 
+    def registry_login(self, registry, username, password):
+        return self.client().login(username=username, password=password, registry=registry)
+
     def set_debug(self, value=True):
         self.debug = value
         return self
