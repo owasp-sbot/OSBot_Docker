@@ -1,10 +1,9 @@
 import docker
+from osbot_utils.decorators.lists.group_by import group_by
+from osbot_utils.decorators.lists.index_by import index_by
 from osbot_utils.utils.Process import exec_process
-
 from osbot_utils.decorators.methods.cache_on_self import cache_on_self
-
 from osbot_utils.decorators.methods.catch import catch
-
 from osbot_utils.utils.Misc import trim, bytes_to_str
 
 
@@ -19,13 +18,13 @@ class API_Docker:
         return docker.from_env()
 
     @catch
-    def container_run(self, repository, tag='latest', command=None, timeout=None):
+    def container_run(self, repository, tag='latest', command=None):
         if tag:
-            image = f"{repository}:{tag}"
+            image = self.image_name(repository, tag)
         else:
             image = repository
 
-        output = self.client().containers.run(image, command, timeout=timeout)
+        output = self.client().containers.run(image, command)
         return { 'status': 'ok'   , 'output' : trim(bytes_to_str(output)) }
 
     def containers(self):
@@ -73,25 +72,55 @@ class API_Docker:
             entrypoint_params.extend(image_params)
         return self.docker_run(entrypoint_params, options=options)
 
-    @catch
-    def image_build(self, path, image_repository, image_tag='latest'):
-        image_name = f"{image_repository}:{image_tag}"
-        (image,build_logs) = self.client().images.build(path=path, tag=image_name)
-        return {'status': 'ok', 'image': image, 'build_logs': build_logs }
+    def format_image(self, target):
+        data = target.attrs
+        data['Labels' ] = target.labels
+        data['ShortId'] = target.short_id
+        data['Tags'   ] = target.tags
+        return data
 
-    def image_delete(self, image_name):
-        return self.client().images.remove(image=image_name)
+    @catch
+    def image_build(self, path, repository, tag='latest'):
+        image_name = self.image_name(repository, tag)
+        (result,build_logs) = self.client().images.build(path=path, tag=image_name)
+        return {'status': 'ok', 'image': result.attrs, 'tags':result.tags, 'build_logs': build_logs }
+
+    def image_delete(self, repository, tag='latest'):
+        if self.image_exists(repository, tag):
+            image_name = self.image_name(repository, tag)
+            self.client().images.remove(image=image_name)
+            return self.image_exists(repository, tag) is False
+        return False
+
+    def image_info(self, repository, tag='latest'):
+        try:
+            image_name = self.image_name(repository,tag)
+            result     = self.client().images.get(image_name)
+            return self.format_image(result)
+        except Exception as error:
+            return None
+
+    def image_exists(self, repository, tag='latest'):
+        return self.image_info(repository, tag) is not None
+
+    def image_name(self, repository, tag):
+        return f"{repository}:{tag}"
 
     def image_pull(self, repository, tag):
         return self.client().images.pull(repository, tag)
 
+    @index_by
+    @group_by
     def images(self):
-        return self.client().images.list()
+        images = []
+        for image in self.client().images.list():
+            images.append(self.format_image(image))
+        return images
 
     def images_names(self):
         names = []
         for image in self.images():
-            for tag in image.tags:
+            for tag in image.get('Tags'):
                 names.append(tag)
         return sorted(names)
 

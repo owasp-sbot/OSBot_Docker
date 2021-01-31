@@ -1,10 +1,12 @@
 from pprint import pprint
 from unittest import TestCase
 
+from osbot_utils.utils.Json import json_parse
+
 from osbot_utils.utils.Files import path_combine, folder_exists, file_exists, temp_folder
 
 from osbot_docker.API_Docker import API_Docker
-from osbot_utils.utils.Misc import lower
+from osbot_utils.utils.Misc import lower, random_string
 
 
 class test_API_Docker(TestCase):
@@ -35,32 +37,41 @@ class test_API_Docker(TestCase):
 
     def test_docker_params_append_options(self):
         docker_params = ['run']
-        options       = {'key': '-v', 'value':'/a:/b'}
-        result = self.api_docker.docker_params_append_options(docker_params,options)
-        assert result == ['run', '-v /a:/b']
+        options        = {'key': '-v', 'value':'/a:/b'}
+        result         = self.api_docker.docker_params_append_options(docker_params,options)
+        assert result == ['run', '-v','/a:/b']
 
-        options = [{'key': '-v', 'value':'/c:/d'}, {'key': '-v', 'value':'/e:/f'}]
-        result = self.api_docker.docker_params_append_options(docker_params, options)
-        assert result == ['run', '-v /a:/b', '-v /c:/d', '-v /e:/f']
+        options        = [{'key': '-v', 'value':'/c:/d'}, {'key': '-v', 'value':'/e:/f'}]
+        result         = self.api_docker.docker_params_append_options(docker_params, options)
+        assert result == ['run', '-v', '/a:/b', '-v', '/c:/d', '-v', '/e:/f']
 
     def test_image_build(self):
-        folder_dockerFile = path_combine(self.path_docker_images, 'centos')
+        target_image      = 'centos'
+        expected_size     = 209348126
+        folder_dockerFile = path_combine(self.path_docker_images, target_image)
         path_dockerfile   = path_combine(folder_dockerFile, 'Dockerfile')
-        image_repository  = "osbot_docker__test_image_build"
-        image_tag         = "abc"
-        image_name        = f"{image_repository}:{image_tag}"
+        repository        = "osbot_docker__test_image_build"
+        tag               = "abc"
+        image_name        = f"{repository}:{tag}"
 
         assert folder_exists(folder_dockerFile)
         assert file_exists(path_dockerfile)
 
-        result = self.api_docker.image_build(folder_dockerFile, image_repository, image_tag)
+        result = self.api_docker.image_build(folder_dockerFile, repository, tag)
 
-        assert result.get('status') == 'ok'
-        assert image_name in result.get('image').tags
+        build_logs = result.get('build_logs')
+        image      = result.get('image')
+        status     = result.get('status')
+        tags       = result.get('tags')
+
+        assert self.api_docker.image_exists(repository, tag)
+        assert status == 'ok'
+        assert image_name in tags
         assert image_name in self.api_docker.images_names()
-        assert next(result.get('build_logs')) == {'stream': 'Step 1/3 : FROM centos:8'}
+        assert image.get('Size') == expected_size
+        assert next(build_logs) == {'stream': 'Step 1/3 : FROM centos:8'}
 
-        pprint(self.api_docker.image_delete(image_name))
+        assert self.api_docker.image_delete(repository,tag) is True
 
         assert image_name not in self.api_docker.images_names()
 
@@ -70,6 +81,19 @@ class test_API_Docker(TestCase):
         # todo: find out why in GH Actions the line below throws the error: AttributeError: 'APIError' object has no attribute 'msg'
         #assert self.api_docker.image_build(temp_folder(), None).get('exception').msg.get('message') == 'Cannot locate specified Dockerfile: Dockerfile'
 
+    def test_image_build_scratch(self):
+        path       = path_combine(self.path_docker_images, 'scratch')
+        repository  = 'scratch'
+        tag         = 'latest'
+        result = self.api_docker.image_build(path=path, repository=repository, tag=tag)
+        assert result.get('image').get('Size') == 0
+
+    def test_image_info(self):
+        assert self.api_docker.image_info(random_string()) is None
+
+    def test_image_exists(self):
+        assert self.api_docker.image_exists(random_string()) is False
+
     def test_image_pull(self):
         repository = 'centos'
         tag        = '8'
@@ -77,6 +101,8 @@ class test_API_Docker(TestCase):
         assert image.tags == ['centos:8']
         assert self.api_docker.container_run(repository, tag, "pwd"                    ) == {'output': '/'                            , 'status': 'ok'}
         assert self.api_docker.container_run(repository, tag, "cat /etc/redhat-release") == {'output': 'CentOS Linux release 8.3.2011', 'status': 'ok'}
+
+
 
     def test_images(self):
         images = self.api_docker.images()
