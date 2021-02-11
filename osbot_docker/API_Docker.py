@@ -41,7 +41,7 @@ class API_Docker:
                 docker_params.append(value)
         return docker_params
 
-    def docker_run(self, image_params, options=None, timeout=None):
+    def docker_run(self, image_params, options=None):
         """Use this method to invoke the docker executable directly
             image_params is an image name of an array of image name + image params"""
 
@@ -50,9 +50,9 @@ class API_Docker:
                 image_params = [image_params]
 
         docker_params = ['run', '--rm']
-        self.docker_params_append_options(docker_params, options)
+        self.docker_params_append_options(docker_params=docker_params, options=options)
         docker_params.extend(image_params)
-        self.print_docker_comamnd(docker_params)                # todo: refactor to use logging class
+        self.print_docker_command(docker_params)                # todo: refactor to use logging class
 
         return exec_process('docker', docker_params, timeout=self.docker_run_timeout)
 
@@ -127,7 +127,7 @@ class API_Docker:
                 names.append(tag)
         return sorted(names)
 
-    def print_docker_comamnd(self, docker_params):
+    def print_docker_command(self, docker_params):
         if self.debug:
             print('******** Docker Command *******')
             print()

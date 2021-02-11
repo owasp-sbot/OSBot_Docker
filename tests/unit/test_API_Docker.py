@@ -38,7 +38,7 @@ class test_API_Docker(TestCase):
     def test_docker_params_append_options(self):
         docker_params = ['run']
         options        = {'key': '-v', 'value':'/a:/b'}
-        result         = self.api_docker.docker_params_append_options(docker_params,options)
+        result         = self.api_docker.docker_params_append_options(docker_params=docker_params,options=options)
         assert result == ['run', '-v','/a:/b']
 
         options        = [{'key': '-v', 'value':'/c:/d'}, {'key': '-v', 'value':'/e:/f'}]
