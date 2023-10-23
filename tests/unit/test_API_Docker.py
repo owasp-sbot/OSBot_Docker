@@ -1,13 +1,10 @@
-from pprint import pprint
-from unittest import TestCase
+from unittest                   import TestCase
 
-from osbot_utils.utils.Json import json_parse
+from osbot_utils.utils.Dev import pprint
 
-from osbot_utils.utils.Files import path_combine, folder_exists, file_exists, temp_folder, files_list, \
-    folder_sub_folders, folders_in_folder, folders_names
-
-from osbot_docker.API_Docker import API_Docker
-from osbot_utils.utils.Misc import lower, random_string, obj_info
+from osbot_utils.utils.Files    import path_combine, folder_exists, file_exists, folders_in_folder, folders_names
+from osbot_docker.API_Docker    import API_Docker
+from osbot_utils.utils.Misc     import lower, random_string
 
 
 class test_API_Docker(TestCase):
@@ -48,9 +45,15 @@ class test_API_Docker(TestCase):
 
         containers_hello_world = self.api_docker.containers_all__with_image(image_name,tag)
         for container in containers_hello_world:
-            short_id = container.get('id_short')
-            print(f"deleting container: {short_id}")
-            assert self.api_docker.container_delete(short_id) is True
+            short_id = container.short_id()
+            print(f"deleting container: {short_id} with image {image_name}:{tag}")
+            assert container.delete() is True
+
+    def test_containers(self):
+        container = self.api_docker.container_create('hello-world')
+        containers = self.api_docker.containers_all__indexed_by_id()
+        assert container.short_id() in containers
+        assert container.delete() is True
 
     def test_docker_params_append_options(self):
         docker_params = ['run']
@@ -63,17 +66,17 @@ class test_API_Docker(TestCase):
         assert result == ['run', '-v', '/a:/b', '-v', '/c:/d', '-v', '/e:/f']
 
     def test_image_build(self):
-        target_image      = 'centos'
-        folder_dockerFile = path_combine(self.path_docker_images, target_image)
-        path_dockerfile   = path_combine(folder_dockerFile, 'Dockerfile')
-        repository        = "osbot_docker__test_image_build"
-        tag               = "abc"
-        image_name        = f"{repository}:{tag}"
+        target_image       = 'centos'
+        folder_docker_file = path_combine(self.path_docker_images, target_image)
+        path_dockerfile    = path_combine(folder_docker_file, 'Dockerfile')
+        repository         = "osbot_docker__test_image_build"
+        tag                = "abc"
+        image_name         = f"{repository}:{tag}"
 
-        assert folder_exists(folder_dockerFile)
+        assert folder_exists(folder_docker_file)
         assert file_exists(path_dockerfile)
 
-        result = self.api_docker.image_build(folder_dockerFile, repository, tag)
+        result = self.api_docker.image_build(folder_docker_file, repository, tag)
 
         build_logs = result.get('build_logs')
         image      = result.get('image')
@@ -91,12 +94,12 @@ class test_API_Docker(TestCase):
         assert image_name not in self.api_docker.images_names()
 
         for container in self.api_docker.containers_all():          # todo: figure out better way to do this
-            labels = container.get('labels')
+            labels = container.labels()
             vendor = labels.get('org.label-schema.vendor')
             if vendor == 'CentOS':
-                short_id = container.get('id_short')
+                short_id = container.short_id()
                 print(f"deleting container: {short_id} since it has vendor=='{vendor}'")
-                assert self.api_docker.container_delete(short_id) is True
+                assert container.delete() is True
 
     def test_image_build__bad_data(self):
         assert self.api_docker.image_build(None         , None).get('error') == 'Either path or fileobj needs to be provided.'
@@ -112,7 +115,7 @@ class test_API_Docker(TestCase):
         result       = self.api_docker.image_build(path=path, image_name=repository, tag=tag)
         image        = result.get('image')
         container_id = image.get('Container')
-        assert self.api_docker.container(container_id) == {}
+        assert self.api_docker.container(container_id).exists() is False
 
     def test_image_info(self):
         assert self.api_docker.image_info(random_string()) is None
@@ -130,11 +133,11 @@ class test_API_Docker(TestCase):
         assert result.get('status') == 'ok'
         assert 'CentOS Linux release 8' in result.get('output')
 
-        containers_hello_world = self.api_docker.containers_all__with_image(image_name, tag)
-        for container in containers_hello_world:
-            short_id = container.get('id_short')
-            print(f"deleting container: {short_id}")
-            assert self.api_docker.container_delete(short_id) is True
+        containers_centos = self.api_docker.containers_all__with_image(image_name, tag)
+        for container in containers_centos:
+            short_id = container.short_id()
+            print(f"deleting container: {short_id} with image {image_name}:{tag}")
+            assert container.delete() is True
 
 
     def test_images(self):
