@@ -1,6 +1,6 @@
 from docker.errors                       import NotFound
 
-from osbot_docker.API_Docker                import API_Docker
+from osbot_docker.apis.API_Docker                import API_Docker
 from osbot_utils.decorators.methods.catch   import catch
 from osbot_utils.utils.Misc                 import date_time_from_to_str, wait_for, trim, bytes_to_str
 
@@ -107,7 +107,7 @@ class Docker_Container:
     def wait_for_container_status(self, desired_status, wait_delta=.2, wait_count=10):
         while wait_count > 0:
             container_status = self.status()
-            print(f'{wait_count}: {self.container_id} : {container_status}')
+            #print(f'{wait_count}: {self.container_id} : {container_status}')
             if container_status is None:
                 return False
             if container_status == desired_status:

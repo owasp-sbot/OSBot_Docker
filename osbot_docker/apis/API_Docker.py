@@ -1,5 +1,7 @@
 import docker
 from docker                                         import APIClient
+from osbot_utils.utils.Dev import pprint
+
 from osbot_utils.utils.Misc import trim, bytes_to_str
 
 from osbot_utils.decorators.lists.group_by          import group_by
@@ -32,21 +34,14 @@ class API_Docker:
         return self.client_docker().version()
 
     def container(self, container_id):
-        from osbot_docker.Docker_Container import Docker_Container
+        from osbot_docker.apis.Docker_Container import Docker_Container
         return Docker_Container(container_id=container_id, api_docker=self)
 
     def container_create(self, image_name, command='', tag='latest', volumes=None, tty=False):
-        """Creates a Docker container and returns its ID."""
-        if tag:
-            image = self.image_name_with_tag(image_name, tag)
-        else:
-            image = image_name
+        from osbot_docker.apis.Docker_Image import Docker_Image
+        image = Docker_Image(image_name=image_name, image_tag=tag, api_docker=self)
+        return image.create_container(command=command, volumes=volumes, tty=tty)
 
-        host_config  = self.client_api().create_host_config(binds=volumes)
-        container    = self.client_api().create_container  (image=image, command=command, host_config=host_config, tty=tty)
-        container_id = container.get('Id')
-        from osbot_docker.Docker_Container import Docker_Container                  # note: we have to import here due to circular dependency
-        return Docker_Container(container_id=container_id, api_docker=self)
 
     @catch
     def container_run(self, image_name, tag='latest', command=None, auto_remove=False, detach=False,
@@ -141,59 +136,27 @@ class API_Docker:
             entrypoint_params.extend(image_params)
         return self.docker_run(entrypoint_params, options=options)
 
-    def format_image(self, target):
-        data = target.attrs
-        data['Labels' ] = target.labels
-        data['ShortId'] = target.short_id
-        data['Tags'   ] = target.tags
-        return data
-
-    @catch
-    def image_build(self, path, image_name, tag='latest'):
-        image_name = self.image_name_with_tag(image_name, tag)
-        (result,build_logs) = self.client_docker().images.build(path=path, tag=image_name)
-        return {'status': 'ok', 'image': result.attrs, 'tags':result.tags, 'build_logs': build_logs }
-
-    def image_delete(self, image_name, tag='latest'):
-        if self.image_exists(image_name, tag):
-            image = self.image_name_with_tag(image_name, tag)
-            self.client_docker().images.remove(image=image)
-            return self.image_exists(image_name, tag) is False
-        return False
-
-    def image_info(self, image_name, tag='latest'):
-        try:
-            image  = self.image_name_with_tag(image_name, tag)
-            result = self.client_docker().images.get(image)
-            return self.format_image(result)
-        except Exception as error:
-            return None
-
-    def image_exists(self, image_name, tag='latest'):
-        return self.image_info(image_name, tag) is not None
-
-    def image_name_with_tag(self, image_name, tag):
-        return f"{image_name}:{tag}"
-
-    def image_pull(self, image_name, tag):
-        return self.client_docker().images.pull(image_name, tag)
-
-    def image_push(self, image_name, tag):
-        return self.client_docker().images.push(image_name, tag)
 
     @index_by
     @group_by
     def images(self):
+        from osbot_docker.apis.Docker_Image import Docker_Image     # note: we have to import here due to circular dependency
         images = []
-        for image in self.client_docker().images.list():
-            images.append(self.format_image(image))
+        for image_data in self.client_api().images():
+            for tag in image_data.get('RepoTags') or []:
+                if tag != '<none>:<none>':
+                    image_name, tag = tag.split(':')
+                    image_id        = image_data.get('Id').split(':')[1]
+                    image = Docker_Image(image_id = image_id, image_name=image_name, image_tag=tag)
+                    images.append(image)
+        #for image in self.client_docker().images.list():
+        #    images.append(self.format_image(image))
         return images
 
     def images_names(self):
         names = []
         for image in self.images():
-            for tag in image.get('Tags'):
-                names.append(tag)
+            names.append(image.name())
         return sorted(names)
 
     def print_docker_command(self, docker_params):

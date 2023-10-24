@@ -1,21 +1,21 @@
-from unittest                   import TestCase
+from unittest                       import TestCase
 
-from osbot_utils.utils.Dev import pprint
-
-from osbot_utils.utils.Files    import path_combine, folder_exists, file_exists, folders_in_folder, folders_names
-from osbot_docker.API_Docker    import API_Docker
-from osbot_utils.utils.Misc     import lower, random_string
+import docker_images
+from osbot_utils.utils.Files        import path_combine, folder_exists, file_exists, folders_in_folder, folders_names
+from osbot_docker.apis.API_Docker   import API_Docker
+from osbot_utils.utils.Misc         import lower, random_string
 
 
 class test_API_Docker(TestCase):
 
-    def setUp(self) -> None:
+    def setUp(self):
         self.api_docker = API_Docker()
-        self.path_docker_images = path_combine(__file__, '../../_test_data/docker_images')
+        self.path_docker_images = docker_images.folder
         print()
 
-    def test___init__(self):
-        assert folders_names(folders_in_folder(self.path_docker_images)) == ['centos', 'scratch']
+    def test__setUp(self):
+        assert folder_exists(self.path_docker_images)
+        assert folders_names(folders_in_folder(self.path_docker_images)) == ['__pycache__', 'centos', 'lambda_python__3_11', 'scratch']
 
     def test_client_api(self):
         assert type(self.api_docker.client_api()).__name__ == 'APIClient'

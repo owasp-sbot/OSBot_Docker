@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from osbot_utils.utils.Dev import pprint
 
-from osbot_docker.API_Docker import API_Docker
+from osbot_docker.apis.API_Docker import API_Docker
 
 
 class test_Docker_Container(TestCase):
