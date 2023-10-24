@@ -1,6 +1,5 @@
 import docker
 from docker                                         import APIClient
-from osbot_utils.utils.Dev import pprint
 
 from osbot_utils.utils.Misc import trim, bytes_to_str
 
@@ -46,10 +45,9 @@ class API_Docker:
     @catch
     def container_run(self, image_name, tag='latest', command=None, auto_remove=False, detach=False,
                       tty=False):  # todo: figure out why auto_remove throws an exception
-        if tag:
-            image = self.image_name_with_tag(image_name, tag)
-        else:
-            image = image_name
+
+        from osbot_docker.apis.Docker_Image import Docker_Image
+        image = Docker_Image(image_name=image_name, image_tag=tag, api_docker=self).image_name_with_tag()
 
         output = self.client_docker().containers.run(image, command, auto_remove=auto_remove, detach=detach, tty=tty)
         return {'status': 'ok', 'output': trim(bytes_to_str(output))}
@@ -57,7 +55,7 @@ class API_Docker:
     @index_by
     @group_by
     def containers(self, **kwargs):
-        from osbot_docker.Docker_Container import Docker_Container      # note: we have to import here due to circular dependency
+        from osbot_docker.apis.Docker_Container import Docker_Container      # note: we have to import here due to circular dependency
         containers = []
         for container_raw in self.containers_raw(**kwargs):
             container_id = container_raw.id
@@ -78,7 +76,8 @@ class API_Docker:
         return containers_by_id
 
     def containers_all__with_image(self, image_name, tag='latest'):
-        image = self.image_name_with_tag(image_name, tag)
+        from osbot_docker.apis.Docker_Image import Docker_Image
+        image = Docker_Image(image_name=image_name, image_tag=tag, api_docker=self).image_name_with_tag()
         containers_with_image = []
         for container in self.containers_all():
             if image in container.image():

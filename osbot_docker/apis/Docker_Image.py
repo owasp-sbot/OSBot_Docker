@@ -1,13 +1,13 @@
-from docker.errors import NotFound
+from docker.errors import NotFound, APIError
 
-from osbot_docker.apis.API_Docker         import API_Docker
 from osbot_docker.apis.Docker_Container import Docker_Container
 from osbot_utils.decorators.methods.catch import catch
 
 
 class Docker_Image:
 
-    def __init__(self, image_name, image_tag, image_id = None, api_docker=None):
+    def __init__(self, image_name, image_tag='latest', image_id = None, api_docker=None):
+        from osbot_docker.apis.API_Docker import API_Docker
         self.api_docker = api_docker or API_Docker()
         self.image_id   = image_id or ''
         self.image_name = image_name
@@ -55,7 +55,7 @@ class Docker_Image:
             image  = self.image_name_with_tag()
             result = self.client_docker().images.get(image)
             return self.format_image(result)
-        except NotFound:
+        except APIError:
             return {}
 
     def image_name_with_tag(self):

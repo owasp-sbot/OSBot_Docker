@@ -19,7 +19,7 @@ class test_Docker_Lambda__Python(TestCase):
     def test_create_container(self):
         container = self.docker_lambda__python.create_container()
         assert container.exists() is True
-        assert container.info().get('image') == f"{self.docker_lambda.image_name}:latest"
+        assert container.info().get('image') == f"{self.docker_lambda__python.image_name}:latest"
         assert container.status() == 'created'
         assert container.start() is True
         assert container.status() == 'running'
