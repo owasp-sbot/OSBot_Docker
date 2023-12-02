@@ -36,10 +36,10 @@ class API_Docker:
         from osbot_docker.apis.Docker_Container import Docker_Container
         return Docker_Container(container_id=container_id, api_docker=self)
 
-    def container_create(self, image_name, command='', tag='latest', volumes=None, tty=False):
+    def container_create(self, image_name, command='', tag='latest', volumes=None, tty=False, port_bindings=None):
         from osbot_docker.apis.Docker_Image import Docker_Image
         image = Docker_Image(image_name=image_name, image_tag=tag, api_docker=self)
-        return image.create_container(command=command, volumes=volumes, tty=tty)
+        return image.create_container(command=command, volumes=volumes, tty=tty, port_bindings=port_bindings)
 
 
     @catch

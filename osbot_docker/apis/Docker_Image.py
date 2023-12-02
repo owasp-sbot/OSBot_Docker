@@ -34,6 +34,7 @@ class Docker_Image:
         container       = Docker_Container(container_id=container_id, api_docker=self)
         return container
 
+    # todo: add solution that supports streaming of docker file creation, this version will only return when the docker build execute completes
     @catch
     def build(self, path):
         image_name = self.image_name_with_tag()

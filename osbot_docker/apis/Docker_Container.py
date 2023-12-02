@@ -93,10 +93,10 @@ class Docker_Container:
     def short_id(self):
         return self.container_id[:12]
 
-    def stop(self, wait_for_exit=True):
+    def stop(self, wait_for_exit=True, timeout=0):
         if self.status() != 'running':
             return False
-        self.client_api().stop(container=self.container_id)
+        self.client_api().stop(container=self.container_id, timeout=timeout)
         if wait_for_exit:
             self.wait_for_container_status('exited')
         return True
