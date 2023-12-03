@@ -54,7 +54,7 @@ class test_API_Docker(TestCase):
 
     def test_containers(self):
         container = self.api_docker.container_create('hello-world')
-        containers = self.api_docker.containers_all__indexed_by_id()
+        containers = self.api_docker.containers_all__by_id()
         assert container.short_id() in containers
         assert container.delete() is True
 

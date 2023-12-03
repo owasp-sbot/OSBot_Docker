@@ -7,9 +7,10 @@ from osbot_utils.utils.Misc                 import date_time_from_to_str, wait_f
 
 class Docker_Container:
 
-    def __init__(self, container_id, api_docker:API_Docker=None):
-        self.api_docker   = api_docker or API_Docker()
-        self.container_id = container_id
+    def __init__(self, container_id, api_docker:API_Docker=None, container_raw=None):
+        self.api_docker    = api_docker or API_Docker()
+        self.container_id  = container_id
+        self.container_raw = container_raw     # initial docker_api container_raw data
 
     def __repr__(self):
         return f"<Docker_Container: {self.short_id()}>"
@@ -27,12 +28,21 @@ class Docker_Container:
                 return True
         return False
 
-    def image(self):
+    def exists(self):
+        return self.info_raw() != {}
+
+    def exec(self, command, workdir=None):
+        """Executes a command inside a running Docker container."""
+        exec_instance   = self.client_api().exec_create(self.container_id, cmd=command, workdir=workdir)
+        result          = self.client_api().exec_start(exec_instance['Id'])
+        return result.decode('utf-8')
+
+    def image(self):                             # todo see what are the performance implications of using info here (which make a full rest call to get the data)
         return self.info().get('image')
 
     def info(self):
-        container_raw = self.info_raw()
-        return self.info_raw_parse(container_raw)
+        info_raw = self.info_raw()
+        return self.info_raw_parse(info_raw)
 
     def info_raw(self):
         try:
@@ -42,37 +52,28 @@ class Docker_Container:
             return {}
 
 
-    def info_raw_parse(self, container_raw):
-        if container_raw == {}:
+    def info_raw_parse(self, info_raw):
+        if info_raw is None or  info_raw == {}:
             return {}
-        config      = container_raw.get('Config'         )
-        created_raw = container_raw.get('Created'        )[:26] + 'Z'       # need to remove the micro seconds
+        config      = info_raw.get('Config'         )
+        created_raw = info_raw.get('Created'        )[:26] + 'Z'       # need to remove the micro seconds
         created     = date_time_from_to_str(created_raw, '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M', True)
-        network     = container_raw.get('NetworkSettings')
-        state       = container_raw.get('State'          )
+        network     = info_raw.get('NetworkSettings')
+        state       = info_raw.get('State'          )
 
-        return dict(args        = container_raw.get('Args'         ),
+        return dict(args        = info_raw.get('Args'         ),
                     created     = created                           ,
                     entrypoint  = config       .get('Entrypoint'   ),
                     env         = config       .get('Env'          ),
-                    id          = container_raw.get('Id'           ),
-                    id_short    = container_raw.get('Id'      )[:12],
+                    id          = info_raw.get('Id'           ),
+                    id_short    = info_raw.get('Id'      )[:12],
                     image       = config       .get('Image'        ),
                     labels      = config       .get('Labels'       ),
-                    name        = container_raw.get('Name'         ),
+                    name        = info_raw.get('Name'         ),
                     ports       = network      .get('Ports'        ),
                     status      = state        .get('Status'       ),
                     volumes     = config       .get('Volumes'      ),
                     working_dir = config       .get('WorkingDir'   ))
-
-    def exists(self):
-        return self.info_raw() != {}
-
-    def exec(self, command, workdir=None):
-        """Executes a command inside a running Docker container."""
-        exec_instance   = self.client_api().exec_create(self.container_id, cmd=command, workdir=workdir)
-        result          = self.client_api().exec_start(exec_instance['Id'])
-        return result.decode('utf-8')
 
     def labels(self):
         return self.info().get('labels') or {}
@@ -83,6 +84,9 @@ class Docker_Container:
             if logs:
                 return logs.decode('utf-8')
         return ''
+
+    def name(self):                             # todo see what are the performance implications of using info here (which make a full rest call to get the data)
+        return self.info().get('name')
 
     def start(self, wait_for_running=True):
         self.client_api().start(container=self.container_id)

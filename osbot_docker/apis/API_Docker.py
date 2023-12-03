@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import docker
 from docker                                         import APIClient
 
@@ -36,10 +38,10 @@ class API_Docker:
         from osbot_docker.apis.Docker_Container import Docker_Container
         return Docker_Container(container_id=container_id, api_docker=self)
 
-    def container_create(self, image_name, command='', tag='latest', volumes=None, tty=False, port_bindings=None):
+    def container_create(self, image_name, command='', tag='latest', volumes=None, tty=False, port_bindings=None, labels=None):
         from osbot_docker.apis.Docker_Image import Docker_Image
         image = Docker_Image(image_name=image_name, image_tag=tag, api_docker=self)
-        return image.create_container(command=command, volumes=volumes, tty=tty, port_bindings=port_bindings)
+        return image.create_container(command=command, volumes=volumes, tty=tty, port_bindings=port_bindings, labels=labels)
 
 
     @catch
@@ -59,7 +61,7 @@ class API_Docker:
         containers = []
         for container_raw in self.containers_raw(**kwargs):
             container_id = container_raw.id
-            docker_container = Docker_Container(container_id=container_id, api_docker=self)
+            docker_container = Docker_Container(container_id=container_id, api_docker=self, container_raw=container_raw)
             #container = self.container_attrs_parse(container_raw.attrs)
             containers.append(docker_container)
         return containers
@@ -69,11 +71,19 @@ class API_Docker:
     def containers_all(self, **kwargs):
         return self.containers(all=True, **kwargs)
 
-    def containers_all__indexed_by_id(self):
+    def containers_all__by_id(self):
         containers_by_id = {}
         for container in self.containers_all():
             containers_by_id[container.short_id()] = container
         return containers_by_id
+    
+    def containers_all__by_labels(self):
+        containers_by_labels = defaultdict(lambda: defaultdict(dict))
+        for container in self.containers_all():
+            labels = container.container_raw.labels or {}
+            for label_id, label_value in labels.items():
+                containers_by_labels[label_id][label_value][container.short_id()] = container
+        return containers_by_labels
 
     def containers_all__with_image(self, image_name, tag='latest'):
         from osbot_docker.apis.Docker_Image import Docker_Image

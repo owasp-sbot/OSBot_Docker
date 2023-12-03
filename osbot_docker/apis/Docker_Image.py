@@ -22,14 +22,14 @@ class Docker_Image:
     def client_docker(self):
         return self.api_docker.client_docker()
 
-    def create_container(self, command='', volumes=None, tty=False, port_bindings=None):
+    def create_container(self, command='', volumes=None, tty=False, port_bindings=None, labels=None):
         """Creates a Docker container and returns its ID."""
         exposed_ports = None
         if port_bindings:
             exposed_ports = list(port_bindings.keys())
         image           = self.image_name_with_tag()
         host_config     = self.client_api().create_host_config(binds=volumes, port_bindings=port_bindings)
-        container_raw   = self.client_api().create_container(image=image, command=command, host_config=host_config, tty=tty, ports=exposed_ports)
+        container_raw   = self.client_api().create_container(image=image, command=command, host_config=host_config, tty=tty, ports=exposed_ports, labels=labels)
         container_id    = container_raw.get('Id')
         container       = Docker_Container(container_id=container_id, api_docker=self)
         return container
