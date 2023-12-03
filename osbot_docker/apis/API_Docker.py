@@ -76,7 +76,7 @@ class API_Docker:
         for container in self.containers_all():
             containers_by_id[container.short_id()] = container
         return containers_by_id
-    
+
     def containers_all__by_labels(self):
         containers_by_labels = defaultdict(lambda: defaultdict(dict))
         for container in self.containers_all():

@@ -2,6 +2,7 @@ from docker.errors import NotFound, APIError
 
 from osbot_docker.apis.Docker_Container import Docker_Container
 from osbot_utils.decorators.methods.catch import catch
+from osbot_utils.utils.Dev import pprint
 
 
 class Docker_Image:
@@ -79,7 +80,11 @@ class Docker_Image:
         return self.exists()
 
     def image_push(self):
-        return self.client_docker().images.push(self.image_name, self.image_tag)
+        # note if the there is a ~/.docker/config.json file, any ecr login into client_docker will not be taken into account (at the moment looks like the solution is to delete this file)
+        # see https://github.com/docker/docker-py/issues/2256#issuecomment-553496988
+        client_docker = self.client_docker()
+        return client_docker.images.push(self.image_name, self.image_tag)
+
 
     def short_id(self):
         return self.image_id[:12]
