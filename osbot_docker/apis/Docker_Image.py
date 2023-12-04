@@ -17,6 +17,9 @@ class Docker_Image:
     def __repr__(self):
         return f"{self.image_name}:{self.image_tag} {self.short_id()}"
 
+    def architecture(self):
+        return self.info().get('Architecture')
+
     def client_api(self):
         return self.api_docker.client_api()
 
