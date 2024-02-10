@@ -3,13 +3,15 @@ from collections import defaultdict
 import docker
 from docker                                         import APIClient
 
-from osbot_utils.utils.Misc import trim, bytes_to_str
+from osbot_utils.utils.Misc import bytes_to_str
 
 from osbot_utils.decorators.lists.group_by          import group_by
 from osbot_utils.decorators.lists.index_by          import index_by
 from osbot_utils.utils.Process                      import exec_process
 from osbot_utils.decorators.methods.cache_on_self   import cache_on_self
 from osbot_utils.decorators.methods.catch           import catch
+from osbot_utils.utils.Str import trim
+
 
 class API_Docker:
 

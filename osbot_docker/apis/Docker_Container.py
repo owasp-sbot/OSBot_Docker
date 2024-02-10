@@ -1,8 +1,7 @@
 from docker.errors                       import NotFound
 
 from osbot_docker.apis.API_Docker                import API_Docker
-from osbot_utils.decorators.methods.catch   import catch
-from osbot_utils.utils.Misc                 import date_time_from_to_str, wait_for, trim, bytes_to_str
+from osbot_utils.utils.Misc                 import date_time_from_to_str, wait_for
 
 
 class Docker_Container:
